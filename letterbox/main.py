@@ -209,8 +209,8 @@ def main(
         aspect_height: float = None,
         file_paths: list = [],
         color: str = "black",
-        use_gui: bool = False
-):
+        use_gui: bool = False):
+
     # Get aspect width and height if it doesn't exist:
 
     if aspect_width is None or aspect_height is None:
@@ -220,19 +220,25 @@ def main(
     if use_gui and (file_paths != []):
         if typer.confirm(
             "You both provided files and asked for a graphical"
-                + " interface to pick them. Use graphical filepicker?"):
-            file_list = select_files()
+                + " interface to pick them. Add files using graphical filepicker?"):
+            file_list = file_paths + select_files()
 
     elif file_paths != []:
         file_list = file_paths
+    
+    elif use_gui:
+        file_list = select_files
 
     elif typer.confirm(
         "No files to pad provided or GUI "
-            + " flag specified. Use GUI selection?"):
+            + "flag specified. Use GUI selection?"):
         file_list = select_files()
     else:
         print("No files provided. Exiting.")
         exit()
+
+    # Remove duplicates in file list.
+    file_list = list(set(file_list)) # Casting a list to a set back to a list.
 
     # Pad file list
     number = 0
@@ -263,25 +269,64 @@ def main(
 
 @ cli.command(help="Pad a set of files into an output location as specified in <config.ini>.")
 def pad(
-        files: Annotated[List[str], typer.Option(
-            "-f", "--files", help="List of files to pad.")] = [],
-        aspect_width: Annotated[float, typer.Option(
-            "-w", "--width", "--aspect-width", help="Output aspect width (eg, for a 3:2 image, use 3).")] = None,
-        aspect_height: Annotated[float, typer.Option(
-            "-h", "--height", "--aspect-height", help='Output aspect height (eg, for a 3:2 image, use 2).')] = None,
+        
+        inputs: Annotated[list[str], typer.Argument(
+            help ="Aspect ratio followed by file list (eg, 3 2 Image1.png Image2.png) to get a 3:2 image. " \
+            "Will prompt for missing arguments.")] = None,
+
         color: Annotated[str, typer.Option(
             "-c", "--color", help="Color of crop bars.")] = "black",
+
         use_gui: Annotated[bool, typer.Option(
             help="Use gui to select files, instead of -f.")] = False,
+        
         prompt: Annotated[bool, typer.Option(
-            help="Prompt for missing arguments.")] = True
+            help="Prompt for missing arguments.")] = True):
+    
+    #Set default values before parsing input array.
+    aspect_width = None
+    aspect_height = None
+    files = []
+
+    #Parse input array.
+    #We have to deal with these cases: <letterbox pad File1 File2>, letterbox pad 3 2, <letterbox pad 3 2 file1 file2>, <letterbox pad>
+    #and bonus points if we can deal with letterbox pad 3 file1 file2.
+
+    #Algorithm: first check if there are arguments (if not, we're done!). Then check if the first one or two arguments are numbers, set aw and ah if they are.
+    #If not, then the remaining arguments are file paths.
+    
+    if inputs is None:
+        inputs = [] #Bandaid on a bug.
 
 
-):
+    arg_position = 0
+    for arg in inputs:
+        if arg_position <= 1: #At this point, it could be either any of the three: a width, height, or filename.
+            
+            try:
+                number = float(arg)
+                argIsNumber = True
+
+            except Exception:
+                number = None
+                argIsNumber = False
+
+            if aspect_width is None and argIsNumber:
+                aspect_width = number
+            elif aspect_height is None and argIsNumber:
+                aspect_height = number
+            else:
+                files.append(arg)
+        else:
+            files.append(arg)
+
+        arg_position += 1
+
     if (not prompt) and ((files == [] and not use_gui) or aspect_width is None or aspect_height is None):
         print("Missing or invalid arguments. Try <letterbox pad --help>. ")
-        exit()
+        raise typer.Exit()
 
+    #Handles the rest of the padding work.
     main(aspect_width, aspect_height, files, color, use_gui)
 
 
