@@ -336,16 +336,16 @@ def click_reset_config():
     return
 
 
-@ cli.command("save")
-def click_add_padding(
-    aspect_width: Annotated[float, typer.Argument()],
-    aspect_height: Annotated[float, typer.Argument()],
-    file_path: Annotated[str, typer.Argument()],
-    output_path: Annotated[str, typer.Argument()],
-    color: Annotated[str, typer.Option("--color", "-c")] = "black"
-):
-    add_padding(aspect_width, aspect_height,
-                file_path, output_path, color=color)
+# @ cli.command("save")
+# def click_add_padding(
+#     aspect_width: Annotated[float, typer.Argument()],
+#     aspect_height: Annotated[float, typer.Argument()],
+#     file_path: Annotated[str, typer.Argument()],
+#     output_path: Annotated[str, typer.Argument()],
+#     color: Annotated[str, typer.Option("--color", "-c")] = "black"
+# ):
+#     add_padding(aspect_width, aspect_height,
+#                 file_path, output_path, color=color)
 
 
 if __name__ == "__main__":
