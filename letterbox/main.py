@@ -19,7 +19,8 @@ self_directory = os.path.dirname(os.path.realpath(__file__))
 config_location = self_directory + ("/config.ini")
 
 
-def reset_config():  # makes a new config file and sets it to the default.
+def reset_config():
+    """Makes a new config and sets it to the default values."""
     config = configparser.ConfigParser(allow_no_value=True)
     config.add_section("Output Location")
     config.set("Output Location", "use_parent_dir", "True")
@@ -40,9 +41,17 @@ def reset_config():  # makes a new config file and sets it to the default.
 # TODO: Add a config() function so you can set up the config from the command
 
 
-def read_config(filename) -> dict:
+def read_config(filepath: str) -> dict:
+    """Reads a config file and returns a config dictionary.
+
+    Args:
+        filepath (str): path to config file
+
+    Returns:
+        dict[str:str]: config dictionary
+    """
     config = configparser.ConfigParser()
-    config.read(filename)
+    config.read(filepath)
 
     config = {
         "use_parent_dir": config.getboolean("Output Location", "use_parent_dir"),
@@ -62,7 +71,12 @@ def read_config(filename) -> dict:
     return config
 
 
-def select_files():
+def select_files() -> list[str]:
+    """Opens a GUI window to select files. Returns selected files.
+
+    Returns:
+        list[str]: list of file picked paths
+    """
 
     # Enable high-DPI scaling (for Windows systems)
     try:
@@ -105,6 +119,16 @@ def add_padding(
     centering: tuple[float, float] = (0.5, 0.5),
     color: str = "black",
 ):
+    """Pad a single image to an output path. Will overwrite files.
+
+    Args:
+        aspect_width (float): _description_
+        aspect_height (float): _description_
+        image_path (str): _description_
+        output_path (str): _description_
+        centering (tuple[float, float], optional): _description_. Defaults to (0.5, 0.5).
+        color (str, optional): _description_. Defaults to "black".
+    """
 
     aspect_ratio = (aspect_width, aspect_height)
     img = Image.open(image_path)
@@ -129,7 +153,23 @@ def add_padding(
     new_img.save(output_path)
 
 
-def generate_output_path(config: Union[dict, str], filepath: str, sequence_number=0):  # type: ignore
+def generate_output_path_from_config(config: Union[dict, str], filepath: str, sequence_number=0) -> str:  # type: ignore
+    """Generates an output path, using the settings in the config.
+
+    Args:
+        config (Union[dict, str]): A path to the config file, or a dict representing the config.
+        filepath (str): The original filepath (may not be necesarry, in that case use a dummy path for now).
+        sequence_number (int, optional): _description_. Defaults to 0.
+
+    Raises:
+        NoValidOutputPathException: _description_
+        NoValidOutputPathException: _description_
+        NoValidOutputPathException: _description_
+
+    Returns:
+        str: output filepath
+    """
+
     class NoValidOutputPathException(Exception):
         pass
 
@@ -180,15 +220,59 @@ def generate_output_path(config: Union[dict, str], filepath: str, sequence_numbe
     return output_filepath
 
 
-def main(
+def pad_file_set(
+    aspect_width: float,
+    aspect_height: float,
+    file_paths: list[str],
+    output_paths: list[str],
+    color: str,
+    verbose: bool = False,
+):
+    """Adds colored bars to a list of files to some aspect ratio. Saves new files according to save_mode.
+
+    Args:
+        aspect_width (float): aspect width (e.g, <3> for a ratio of <3:2>)
+        aspect_height (float): aspect height (e.g. <2> for a ratio of <3:2>)
+        file_paths (list[str]): a list of paths in which to find the files to pad.
+        output_paths (list[str]): a list of paths to which to output.
+        color (str): background color (eg "black").
+        overwrite_protect (bool, optional): Will raise an error when trying to overwrite an existing file. Default False
+    """
+
+    # TODO Validate lists for overwrites and formats!!!!
+
+    if len(output_paths) != len(file_paths):
+        raise ValueError("output_paths length does not match file_paths.")
+
+    for i in range(len(file_paths)):
+        file_path = file_paths[i]
+        output_path = output_paths[i]
+        add_padding(aspect_width, aspect_height, file_path, output_path, color=color)
+        if verbose:
+            print(
+                f"Padded image at {file_path} and saved it in {file_path} to ratio "
+                "{aspect_width}:{aspect_height} with the color {color}."
+            )
+
+
+def pad_files_with_config(
     aspect_width: float = None,
     aspect_height: float = None,
     file_paths: list = [],
     color: str = "black",
     use_gui: bool = False,
 ):
+    """Pads files, respecting the config file. Prompts for missing info.
 
-    # Get aspect width and height if it doesn't exist:
+    Args:
+        aspect_width (float, optional): aspect width (e.g, <3> for a ratio of <3:2>). Defaults to None.
+        aspect_height (float, optional): aspect height (e.g. <2> for a ratio of <3:2>. Defaults to None.
+        file_paths (list, optional): a list of paths in which to find the files to pad.. Defaults to [].
+        color (str, optional): Background color. Defaults to "black".
+        use_gui (bool, optional): Whether to use the graphical filepicker. Defaults to False.
+    """
+
+    # Prompt for aspect width and height if it doesn't exist:
 
     if aspect_width is None or aspect_height is None:
         aspect_width = typer.prompt("Aspect width", type=float)
@@ -219,9 +303,13 @@ def main(
     file_list = list(set(file_list))  # Casting a list to a set back to a list.
 
     # Pad file list
-    number = 0
 
-    for i in file_list:
+    # TODO: Generate a list of output files. Then pass this effort to pad_file_list.
+    number = 0
+    output_paths = []
+    for i in file_list[
+        :
+    ]:  # Iterating over a copy of file list so we can mutate it without bugs.
         # If the image is of a correct format, pad it.
         if os.path.splitext(i)[1] in [".jpeg", ".jpg", ".bmp", ".png", ".gif"]:
             # Generate a new path for the file based on config preferences.
@@ -232,14 +320,22 @@ def main(
                     reset_config()
                     config = read_config(config_location)
 
-            output_path = generate_output_path(config, i, number)
+            output_path = generate_output_path_from_config(config, i, number)
             print(output_path)
-            add_padding(aspect_width, aspect_height, i, output_path, color=color)
+            # add_padding(aspect_width, aspect_height, i, output_path, color=color)
+            # Instead of padding the file, we will just build the output path list.
+
+            output_paths.append[output_path]
+
             number = number + 1
+
         # Otherwise, let the user know we're skipping a file.
         else:
+            file_list.remove(i)
             print(f"The file {i} is of an unsupported format and was skipped.")
 
+    # Send the files off to be padded.
+    pad_file_set(aspect_width, aspect_height, file_list, output_paths, color)
     # Let the user know how much we padded
     print(f"Padded {number} files. Exiting.")
 
@@ -269,14 +365,7 @@ def pad(
     aspect_height = None
     files = []
 
-    # Parse input array.
-    # We have to deal with these cases: <letterbox pad File1 File2>, letterbox pad 3 2,
-    # <letterbox pad 3 2 file1 file2>, <letterbox pad>
-    # and bonus points if we can deal with letterbox pad 3 file1 file2.
-
-    # Algorithm: first check if there are arguments (if not, we're done!). Then check if the first one or two arguments
-    #  are numbers, set aw and ah if they are.
-    # If not, then the remaining arguments are file paths.
+    # Dynamically parse the input array.
 
     if inputs is None:
         inputs = []  # Bandaid on a bug.
@@ -312,8 +401,8 @@ def pad(
         print("Missing or invalid arguments. Try <letterbox pad --help>. ")
         raise typer.Exit()
 
-    # Handles the rest of the padding work.
-    main(aspect_width, aspect_height, files, color, use_gui)
+    # Handles the rest of the prompting work, respecting the config.
+    pad_files_with_config(aspect_width, aspect_height, files, color, use_gui)
 
 
 @cli.command("reset-config")
@@ -339,4 +428,4 @@ if __name__ == "__main__":
         cli()
     except TypeError:
         print("Argument Error. Defaulting to interactive version.")
-        main()
+        pad_files_with_config()
