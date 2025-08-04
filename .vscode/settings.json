@@ -16,5 +16,9 @@
   "editor.formatOnSave": true,
   "python.formatting.provider": "black",
   "files.autoSave": "afterDelay",
-  "files.autoSaveDelay" : 5000
+  "files.autoSaveDelay" : 5000,
+
+  "git.decorations.enabled": true,
+  "git.autorefresh": true,
+  "python.analysis.extraPaths": ["./"]
 }
