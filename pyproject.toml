@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "letterbox"
 version = "0.1.0"
-description = ""
+description = "Adds crop bars to images to achieve a given aspect ratio."
 authors = ["fakenamesmith"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = ">=3.10,<4.0"
 typer = {extras = ["all"], version = "^0.13.1"}
 pillow = "^11.0.0"
 rich = "^13.9.4"
