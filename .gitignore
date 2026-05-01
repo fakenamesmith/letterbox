@@ -2,5 +2,5 @@
 /tests
 /letterbox/__pycache__
 /venv
-!/.vscode/settings.json
+/.vscode/settings.json
 .flake8
