@@ -3,3 +3,4 @@
 /letterbox/__pycache__
 /venv
 !/.vscode/settings.json
+.flake8
