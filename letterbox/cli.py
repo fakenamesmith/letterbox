@@ -150,7 +150,7 @@ def pad_files_with_config(
             # add_padding(aspect_width, aspect_height, i, output_path, color=color)
             # Instead of padding the file, we will just build the output path list.
 
-            output_paths.append[output_path]
+            output_paths.append(output_path)
 
             number = number + 1
 
